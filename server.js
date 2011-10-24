@@ -2,7 +2,7 @@
 
 var http = require('http');
 var route = require('./route');
-
+var url = require('url');
 
 function run(port, routes) {
 
@@ -10,7 +10,8 @@ function run(port, routes) {
     http.createServer(function (request, response) {
         
         console.log(request.method + ' ' + request.url);
-        route.route(request.method, request.url, routes)(request, response);
+        request.setEncoding("utf8");
+        route.route(request.method, url.parse(request.url).pathname, routes)(request, response);
 
     }).listen(port); 
 }

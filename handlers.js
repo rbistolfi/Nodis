@@ -36,6 +36,40 @@ function redisList(request, response) {
 
     else {
         // there is a query string
+        console.log("Query: " + JSON.stringify(url.query));
+        // get the key and the query
+        k = url.pathname.substring(1);
+        query = url.query; //querystring.parse(url.query);
+        
+        // start the response
+        response.writeHead(200, {'Content-Type': 'application/json'});
+
+        redis.lrange(k, 0, -1,
+                function (err, item) {
+                    console.log("inspecting " + item);
+                    obj = JSON.parse(item);
+
+                    // test if there is a match
+                    found = 0;
+                    Object.keys(query).forEach(
+                        function (key) {
+                            if (query[key] == obj[key]) {
+                                // we got a partial match
+                                // this will do for now, we write the item
+                                console.log('Match found');
+                                found = 1;
+                            }
+                        });
+                    if (found == 1) {
+                            console.log('Writting response: ' + item);
+                            strItem = item;
+                            response.write(strItem, 'utf8');
+                    }
+                });
+        
+        // end request
+        console.log("Finishing request");
+        response.end();
     }
 }
 

@@ -7,7 +7,7 @@ var querystring = require('querystring');
 
 
 // handler for /libros
-function redisList(request, response) {
+function redisList(request, response, key) {
     console.log('Redis list requested');
     
     url = urlUtil.parse(request.url, true);
@@ -19,7 +19,8 @@ function redisList(request, response) {
         console.log('There is no query string');
         
         // remove the / from the path
-        k = url.pathname.substring(1);
+        // k = url.pathname.substring(1);
+        k=key;
 
         // query redis and write response
         o = redis.lrange(k, 0, -1, 
@@ -70,14 +71,20 @@ function redisList(request, response) {
     }
 }
 
+// /foos
+function collection(request,response){
+    console.log('collection requested');
+    req_path = request.url;
+    regexp = /^\/([^/]+)\/?$/;
+    result = regexp.exec(req_path);
+    redisList(request, response, result[1]);
+}
 
 // handler for /libros/<id>
-function objectByIndex(request, response) {
+function objectByIndex(request, response, object, index) {
     console.log('Redis object by index requested');
-    url = urlUtil.parse(request.url);
-    urlArray = url.pathname.split('/');
-    k = urlArray[1];
-    i = urlArray[2];
+    k = object;
+    i = index;
     o = redis.lindex(k, i, 
         function (err, val) {
             if (!val) {
@@ -92,8 +99,17 @@ function objectByIndex(request, response) {
 }
 
 
+// /foos
+function member(request,response){
+    console.log('resource requested');
+    req_path = request.url;
+    regexp = /^\/([^/]+)\/(\d+)\/?$/;
+    result = regexp.exec(req_path);
+    objectByIndex(request, response, result[1], result[2]);
+}
+
 // handler POST to /libros
-function addObject(request, response) {
+function addObject(request, response, object) {
 
     console.log('Handling POST');
 
@@ -102,12 +118,21 @@ function addObject(request, response) {
     request.addListener("data", function(chunk) {
         postBody += chunk.toString();
     });
- 
+
     request.addListener("end", function() {
-        redis.rpush('libros', postBody);
+        redis.rpush(object, postBody);
         response.writeHead(200);
         response.end();
     });
+}
+
+function resource_post(request,response) {
+    console.log('resource_post');
+    req_path = request.url;
+    console.log(request.url);
+    regexp = /^\/([^/]+)\/?$/;
+    result = regexp.exec(req_path);
+    addObject(request, response, result[1]);
 }
 
 
@@ -117,8 +142,11 @@ function defaultHandler(request, response) {
     response.end();
 }
 
-
 exports.redisList = redisList;
 exports.objectByIndex = objectByIndex;
 exports.defaultHandler = defaultHandler;
 exports.addObject = addObject;
+exports.collection = collection;
+exports.member = member;
+exports.resource_post = resource_post;
+

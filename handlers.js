@@ -44,32 +44,29 @@ function redisList(request, response) {
         // start the response
         response.writeHead(200, {'Content-Type': 'application/json'});
 
+        // find 1st match and write it
         redis.lrange(k, 0, -1,
-                function (err, item) {
-                    console.log("inspecting " + item);
-                    obj = JSON.parse(item);
+                function (err, val) {
+                    console.log("inspecting " + val);
+                    list = JSON.parse('[' + val + ']');
 
                     // test if there is a match
-                    found = 0;
-                    Object.keys(query).forEach(
-                        function (key) {
-                            if (query[key] == obj[key]) {
-                                // we got a partial match
-                                // this will do for now, we write the item
-                                console.log('Match found');
-                                found = 1;
+                    results = new Array();
+                    for (i in list) {
+                        matchs = true;
+                        obj = list[i];
+                        for (var key in query) {
+                            if (query[key] != obj[key]) {
+                                matchs = false;
                             }
-                        });
-                    if (found == 1) {
-                            console.log('Writting response: ' + item);
-                            strItem = item;
-                            response.write(strItem, 'utf8');
+                        }
+                        if (matchs) {
+                            console.log("Match found");
+                            results.push(obj);
+                        }
                     }
+                    response.end(JSON.stringify(results));
                 });
-        
-        // end request
-        console.log("Finishing request");
-        response.end();
     }
 }
 
